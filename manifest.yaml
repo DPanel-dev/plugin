@@ -1,0 +1,35 @@
+version: "1.0"
+
+plugin:
+  name: "rclone-manager"
+  version: "1.5.0"
+  defaultLang: "zh-CN" 
+  title:
+    zh-CN: "RClone 存储管理器"
+    en-US: "RClone Manager"
+  # 启动方式 compose shell
+  bootstrap: "compose"
+view:
+  # 前端引用模式 wujie iframe none
+  type: "wujie"
+  entry: "http://{{DP_PLUGIN_HOST_IP}}:{{SERVER_PORT}}/index.html"
+  props:
+    apiPrefix: "/api/proxy"
+
+config:
+  - name: "SYNC_PATH"
+    label: "本地同步目录" 
+    type: "text"
+    description: "请选择宿主机上需要同步的文件夹"
+    required: true
+  - name: "RCLONE_REMOTE"
+    label:
+      zh-CN: "远程存储路径"
+      en-US: "Remote Path"
+    type: "string"
+    placeholder: "oss:/my-bucket/data"
+    required: true
+  - name: "SYNC_INTERVAL"
+    label: "同步间隔(秒)"
+    type: "number"
+    default: 60

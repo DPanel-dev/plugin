@@ -1,0 +1,18 @@
+services:
+  server:
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    environment:
+      DISPLAY_TITLE: ${DISPLAY_TITLE:-插件配置展示}
+      DISPLAY_MESSAGE: ${DISPLAY_MESSAGE:-}
+      DISPLAY_COUNT: ${DISPLAY_COUNT:-1}
+      DISPLAY_MODE: ${DISPLAY_MODE:-simple}
+      DISPLAY_TAGS: ${DISPLAY_TAGS:-}
+      DISPLAY_COLOR: ${DISPLAY_COLOR:-blue}
+      DISPLAY_NOTE: ${DISPLAY_NOTE:-}
+      CONTACTS: "{{.CONTACTS}}"
+      SERVER_PORT: ${SERVER_PORT:-18080}
+    ports:
+      - "${SERVER_PORT:-18080}:${SERVER_PORT:-18080}"
+    restart: unless-stopped

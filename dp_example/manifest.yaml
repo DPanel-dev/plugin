@@ -1,0 +1,112 @@
+version: "1.0"
+
+plugin:
+  name: dp_example
+  version: "1.0.0"
+  defaultLang: zh
+  title:
+    zh: 配置展示示例
+    en: Configuration Display Example
+  bootstrap: compose
+
+view:
+  type: wujie
+  entry: "http://{{DP_PLUGIN_HOST_IP}}:{{SERVER_PORT}}/"
+
+config:
+  - name: SERVER_PORT
+    label:
+      zh: 示例服务端口
+      en: Example server port
+    type: number
+    description: 示例页面和配置 API 在宿主机上使用的端口
+    default: "18080"
+    required: true
+  - name: DISPLAY_TITLE
+    label:
+      zh: 展示标题
+      en: Display title
+    type: text
+    description: 显示在插件页面顶部的标题
+    placeholder: 请输入标题
+    default: "插件配置展示"
+    required: true
+  - name: DISPLAY_MESSAGE
+    label:
+      zh: 展示内容
+      en: Display message
+    type: textarea
+    description: 支持输入多行内容
+    placeholder: "填写要在插件页面展示的内容"
+    required: true
+  - name: DISPLAY_COUNT
+    label:
+      zh: 示例数字
+      en: Example number
+    type: number
+    default: "1"
+  - name: DISPLAY_MODE
+    label:
+      zh: 显示模式
+      en: Display mode
+    type: select
+    description: 单选下拉框示例
+    multiple: "false"
+    values:
+      - label: 简洁
+        value: simple
+      - label: 详细
+        value: detailed
+    default: simple
+  - name: DISPLAY_TAGS
+    label: 标签
+    type: select
+    description: 多选下拉框示例
+    multiple: "true"
+    values:
+      - label: 开发
+        value: development
+      - label: 测试
+        value: testing
+      - label: 生产
+        value: production
+  - name: APPEARANCE
+    label: 外观设置
+    type: group
+    description: 单实例分组示例
+    multiple: false
+    collapsed: true
+    fields:
+      - DISPLAY_COLOR
+      - DISPLAY_NOTE
+  - name: DISPLAY_COLOR
+    label: 主题颜色
+    type: text
+    default: blue
+  - name: DISPLAY_NOTE
+    label: 外观备注
+    type: textarea
+    placeholder: 填写外观说明
+  - name: CONTACTS
+    label: 联系人
+    type: group
+    description: 可增减实例的分组示例
+    multiple: true
+    min: 1
+    max: 3
+    default: 1
+    fields:
+      - CONTACT_NAME
+      - CONTACT_ROLE
+  - name: CONTACT_NAME
+    label: 联系人姓名
+    type: text
+    required: true
+  - name: CONTACT_ROLE
+    label: 联系人角色
+    type: select
+    values:
+      - label: 负责人
+        value: owner
+      - label: 协作者
+        value: collaborator

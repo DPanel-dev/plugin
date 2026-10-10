@@ -2,11 +2,8 @@ name: Mirror plugin repository to OCI registries
 
 on:
   push:
-    branches:
-      - main
     tags:
       - 'v*'
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,21 +14,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: oras-project/setup-oras@v1
-        with:
-          version: 1.3.0
-
       - name: Log in to Docker Hub
         env:
           REGISTRY_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           REGISTRY_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        run: printf '%s' "$REGISTRY_PASSWORD" | oras login docker.io --username "$REGISTRY_USERNAME" --password-stdin
+        run: printf '%s' "$REGISTRY_PASSWORD" | docker login docker.io --username "$REGISTRY_USERNAME" --password-stdin
 
       - name: Log in to Aliyun
         env:
           REGISTRY_USERNAME: ${{ secrets.ALIYUN_USERNAME }}
           REGISTRY_PASSWORD: ${{ secrets.ALIYUN_PASSWORD }}
-        run: printf '%s' "$REGISTRY_PASSWORD" | oras login registry.cn-hangzhou.aliyuncs.com --username "$REGISTRY_USERNAME" --password-stdin
+        run: printf '%s' "$REGISTRY_PASSWORD" | docker login registry.cn-hangzhou.aliyuncs.com --username "$REGISTRY_USERNAME" --password-stdin
 
       - name: Generate artifact tags
         id: meta
@@ -43,28 +36,34 @@ jobs:
           tags: |
             type=sha,format=long
             type=ref,event=tag
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=latest
           flavor: |
             latest=false
 
-      - name: Package plugin repository
+      - name: Archive DPanel plugin Git repository
         run: |
-          git archive --format=tar --output="$RUNNER_TEMP/repository.tar" "$GITHUB_SHA"
+          mkdir "$RUNNER_TEMP/plugin-image"
+          git archive --format=tar --output="$RUNNER_TEMP/plugin-image/dpanel-plugin-git-snapshot.tar" "$GITHUB_SHA"
+          printf 'FROM scratch\nCOPY dpanel-plugin-git-snapshot.tar /dpanel-plugin-git-snapshot.tar\n' > "$RUNNER_TEMP/plugin-image/Dockerfile"
 
-      - name: Push OCI artifact
+      - name: Build and push repository mirror
         env:
           ARTIFACT_TAGS: ${{ steps.meta.outputs.tags }}
         run: |
-          cd "$RUNNER_TEMP"
+          first_ref="${ARTIFACT_TAGS%%$'\n'*}"
+          [ -n "$first_ref" ]
+          docker build \
+            --platform linux/amd64 \
+            --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --label "com.dpanel.plugin.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+            --label com.dpanel.plugin.root=/ \
+            --tag "$first_ref" \
+            "$RUNNER_TEMP/plugin-image"
           while IFS= read -r ref; do
             [ -n "$ref" ] || continue
-            oras push \
-              --artifact-type application/vnd.dpanel.plugin.repository.v1 \
-              --annotation com.dpanel.plugin.title='DPanel plugin repository' \
-              --annotation com.dpanel.plugin.description='Plugin manifests, Compose files, and source for DPanel import' \
-              --annotation "com.dpanel.plugin.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
-              --annotation com.dpanel.plugin.root='/' \
-              --annotation "com.dpanel.plugin.revision=$GITHUB_SHA" \
-              "$ref" \
-              "repository.tar:application/vnd.dpanel.plugin.repository.layer.v1.tar"
+            if [ "$ref" != "$first_ref" ]; then
+              docker tag "$first_ref" "$ref"
+            fi
+            docker push "$ref"
           done <<< "$ARTIFACT_TAGS"

@@ -20,19 +20,12 @@ jobs:
           REGISTRY_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         run: printf '%s' "$REGISTRY_PASSWORD" | docker login docker.io --username "$REGISTRY_USERNAME" --password-stdin
 
-      - name: Log in to Aliyun
-        env:
-          REGISTRY_USERNAME: ${{ secrets.ALIYUN_USERNAME }}
-          REGISTRY_PASSWORD: ${{ secrets.ALIYUN_PASSWORD }}
-        run: printf '%s' "$REGISTRY_PASSWORD" | docker login registry.cn-hangzhou.aliyuncs.com --username "$REGISTRY_USERNAME" --password-stdin
-
       - name: Generate artifact tags
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: |
             docker.io/dpanel/plugin
-            registry.cn-hangzhou.aliyuncs.com/dpanel/plugin
           tags: |
             type=sha,format=long
             type=ref,event=tag
@@ -67,3 +60,25 @@ jobs:
             fi
             docker push "$ref"
           done <<< "$ARTIFACT_TAGS"
+
+      - name: Sync images to Aliyun
+        env:
+          ARTIFACT_TAGS: ${{ steps.meta.outputs.tags }}
+          REGISTRY_USERNAME: ${{ secrets.ALIYUN_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.ALIYUN_PASSWORD }}
+        run: |
+          : "${REGISTRY_USERNAME:?Set ALIYUN_USERNAME}"
+          : "${REGISTRY_PASSWORD:?Set ALIYUN_PASSWORD}"
+          docker run --rm \
+            -e ARTIFACT_TAGS -e REGISTRY_USERNAME -e REGISTRY_PASSWORD \
+            -e HTTP_PROXY -e HTTPS_PROXY -e ALL_PROXY -e NO_PROXY \
+            --entrypoint /bin/sh quay.io/skopeo/stable:latest -ec '
+              set -eu
+              printf %s "$REGISTRY_PASSWORD" | skopeo login \
+                --username "$REGISTRY_USERNAME" --password-stdin registry.cn-hangzhou.aliyuncs.com
+              for ref in $ARTIFACT_TAGS; do
+                destination="registry.cn-hangzhou.aliyuncs.com/${ref#docker.io/}"
+                echo "Sync $ref -> $destination"
+                skopeo copy --all --preserve-digests --retry-times 3 \
+                  "docker://$ref" "docker://$destination"
+              done'

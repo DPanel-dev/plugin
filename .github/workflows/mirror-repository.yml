@@ -44,7 +44,7 @@ jobs:
         run: |
           mkdir "$RUNNER_TEMP/plugin-image"
           git archive --format=tar --output="$RUNNER_TEMP/plugin-image/dpanel-plugin-git-snapshot.tar" "$GITHUB_SHA"
-          printf 'FROM scratch\nCOPY dpanel-plugin-git-snapshot.tar /dpanel-plugin-git-snapshot.tar\n' > "$RUNNER_TEMP/plugin-image/Dockerfile"
+          printf 'FROM scratch\nADD dpanel-plugin-git-snapshot.tar /\n' > "$RUNNER_TEMP/plugin-image/Dockerfile"
 
       - name: Build and push repository mirror
         env:

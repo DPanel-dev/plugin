@@ -44,6 +44,8 @@ jobs:
             type=sha,format=long
             type=ref,event=tag
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+          flavor: |
+            latest=false
 
       - name: Package plugin repository
         run: |
@@ -53,6 +55,7 @@ jobs:
         env:
           ARTIFACT_TAGS: ${{ steps.meta.outputs.tags }}
         run: |
+          cd "$RUNNER_TEMP"
           while IFS= read -r ref; do
             [ -n "$ref" ] || continue
             oras push \
@@ -63,5 +66,5 @@ jobs:
               --annotation com.dpanel.plugin.root='/' \
               --annotation "com.dpanel.plugin.revision=$GITHUB_SHA" \
               "$ref" \
-              "$RUNNER_TEMP/repository.tar:application/vnd.dpanel.plugin.repository.layer.v1.tar"
+              "repository.tar:application/vnd.dpanel.plugin.repository.layer.v1.tar"
           done <<< "$ARTIFACT_TAGS"

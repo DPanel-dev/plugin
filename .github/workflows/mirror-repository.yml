@@ -1,0 +1,67 @@
+name: Mirror plugin repository to OCI registries
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oras-project/setup-oras@v1
+        with:
+          version: 1.3.0
+
+      - name: Log in to Docker Hub
+        env:
+          REGISTRY_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: printf '%s' "$REGISTRY_PASSWORD" | oras login docker.io --username "$REGISTRY_USERNAME" --password-stdin
+
+      - name: Log in to Aliyun
+        env:
+          REGISTRY_USERNAME: ${{ secrets.ALIYUN_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.ALIYUN_PASSWORD }}
+        run: printf '%s' "$REGISTRY_PASSWORD" | oras login registry.cn-hangzhou.aliyuncs.com --username "$REGISTRY_USERNAME" --password-stdin
+
+      - name: Generate artifact tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            docker.io/dpanel/plugin
+            registry.cn-hangzhou.aliyuncs.com/dpanel/plugin
+          tags: |
+            type=sha,format=long
+            type=ref,event=tag
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Package plugin repository
+        run: |
+          git archive --format=tar --output="$RUNNER_TEMP/repository.tar" "$GITHUB_SHA"
+
+      - name: Push OCI artifact
+        env:
+          ARTIFACT_TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          while IFS= read -r ref; do
+            [ -n "$ref" ] || continue
+            oras push \
+              --artifact-type application/vnd.dpanel.plugin.repository.v1 \
+              --annotation com.dpanel.plugin.title='DPanel plugin repository' \
+              --annotation com.dpanel.plugin.description='Plugin manifests, Compose files, and source for DPanel import' \
+              --annotation "com.dpanel.plugin.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+              --annotation com.dpanel.plugin.root='/' \
+              --annotation "com.dpanel.plugin.revision=$GITHUB_SHA" \
+              "$ref" \
+              "$RUNNER_TEMP/repository.tar:application/vnd.dpanel.plugin.repository.layer.v1.tar"
+          done <<< "$ARTIFACT_TAGS"

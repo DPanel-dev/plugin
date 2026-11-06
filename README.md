@@ -51,3 +51,36 @@ config:
     type: text
     required: true
 ```
+
+### 插件描述
+
+`plugin.description` 按语言填写 Markdown 正文，使用 YAML 的 `|` 保留换行：
+
+```yaml
+plugin:
+  description:
+    zh: |
+      ## 插件用途
+
+      - **功能**：说明插件提供的能力。
+      - **使用方式**：说明运行前的配置和使用步骤。
+```
+
+也可以使用 `plugin.descriptionFile` 按语言引用 Markdown 文件。路径相对于该插件的 `manifest.yaml` 所在目录：
+
+```yaml
+plugin:
+  descriptionFile:
+    zh: README.md
+  description:
+    en: |
+      ## About this plugin
+
+      Describe its features and usage here.
+```
+
+两个字段都可省略，也可以分别为不同语言使用正文和文件；同一语言不能同时出现在两个字段中。字段值中的普通字符串不会自动被识别为文件路径。
+
+引用的文件须为插件目录内的 UTF-8 `.md` 普通文件，大小不超过 1 MiB；不支持远程 URL、绝对路径、越界路径或文件符号链接。文件须随插件仓库一起交付。引用缺失、无效或同一语言重复定义会使本次来源同步失败，保留之前成功同步的索引。
+
+描述在来源同步时读取并保存，修改后需要重新同步插件源。详情页按当前界面语言显示，未提供对应语言时回退到 `plugin.defaultLang` 的描述；两者均未提供时不显示描述。两种来源均按 Markdown 渲染并清理不安全 HTML。文件中的相对图片和附件链接不会自动映射到插件目录，需使用可访问的完整 URL。

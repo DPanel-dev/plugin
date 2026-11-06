@@ -1,2 +1,4 @@
 dp_example/src/app/dist/
 dp_example/src/app/node_modules/
+.DS_Store
+**/.DS_Store

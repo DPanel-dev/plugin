@@ -7,6 +7,23 @@ plugin:
   title:
     zh: 配置展示示例
     en: Configuration Display Example
+  descriptionFile:
+    zh: README.md
+  description:
+    en: |
+      ## Configuration Display Example
+
+      A test plugin for checking how configuration values reach a container and appear on its page.
+
+      - Covers text, multiline text, numbers, single and multiple selections, and grouped fields.
+      - Displays values returned by the plugin's `/api/test` endpoint, including the raw `CONTACTS` value.
+      - Uses port **18080** by default; choose an available host port when running the example.
+
+      After deploying the example, open its page and compare the returned values with your configuration.
+      Changing the configuration requires updating and recreating the container.
+
+      This example displays configuration values as text. Theme color and display mode are sample values;
+      they do not change the page appearance. Do not enter passwords or other secrets.
   bootstrap: compose
 
 view:
